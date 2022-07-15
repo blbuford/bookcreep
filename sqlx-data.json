@@ -1,0 +1,13 @@
+{
+  "db": "SQLite",
+  "9e273d9e2dad20cc576e25206138adeee47407b547143dcc42cbdb5da5f81da9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "\n        INSERT INTO users VALUES (?, ?, ?, ?, ?)\n        "
+  }
+}
