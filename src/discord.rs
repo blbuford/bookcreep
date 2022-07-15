@@ -4,7 +4,6 @@ use serenity::async_trait;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{CommandResult, StandardFramework};
 use serenity::model::channel::Message;
-use serenity::model::id::ChannelId;
 use serenity::prelude::*;
 
 use crate::creeper::get_books;

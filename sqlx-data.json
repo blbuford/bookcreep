@@ -1,6 +1,48 @@
 {
   "db": "SQLite",
-  "9e273d9e2dad20cc576e25206138adeee47407b547143dcc42cbdb5da5f81da9": {
+  "499afa07629934fbf07fc2f0519cf9e387f7816558eb9ac491081b1a69c9bbd7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discord_user_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "goodreads_user_id",
+          "ordinal": 1,
+          "type_info": "Int64"
+        },
+        {
+          "name": "last_etag",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_checked",
+          "ordinal": 3,
+          "type_info": "Int64"
+        },
+        {
+          "name": "last_isbn",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM users WHERE last_checked < ?"
+  },
+  "e910be16c56dcee9449ee0e2803ade12929b29a9c864ff80bc2c200c75e2e814": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -8,6 +50,6 @@
         "Right": 5
       }
     },
-    "query": "\n        INSERT INTO users VALUES (?, ?, ?, ?, ?)\n        "
+    "query": "\n            INSERT INTO users VALUES (?, ?, ?, ?, ?)\n            "
   }
 }
