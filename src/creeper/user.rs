@@ -3,11 +3,11 @@ use sqlx::sqlite::SqlitePool;
 
 #[derive(Debug)]
 pub struct User {
-    discord_user_id: i64,
-    goodreads_user_id: i64,
-    last_etag: Option<String>,
-    last_checked: i64,
-    last_isbn: Option<String>,
+    pub discord_user_id: i64,
+    pub goodreads_user_id: i64,
+    pub last_etag: Option<String>,
+    pub last_checked: i64,
+    pub last_isbn: Option<String>,
 }
 
 impl User {

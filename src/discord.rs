@@ -6,7 +6,7 @@ use serenity::framework::standard::{CommandResult, StandardFramework};
 use serenity::model::channel::Message;
 use serenity::prelude::*;
 
-use crate::creeper::get_books;
+// use crate::creeper::get_books;
 
 #[group]
 #[commands(ping)]
@@ -19,9 +19,9 @@ impl EventHandler for Handler {}
 
 #[command]
 async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    let t = get_books().await?;
+    // let t = get_books().await?;
 
-    msg.reply(ctx, t).await?;
+    msg.reply(ctx, "pannnic").await?;
 
     Ok(())
 }
