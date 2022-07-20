@@ -73,3 +73,123 @@ impl GovernedClient {
         Ok(Some(result))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::crawler::GovernedClient;
+    use claim::{assert_ge, assert_le, assert_none, assert_ok, assert_some};
+    use reqwest::header::HeaderMap;
+    use std::time::{Duration, Instant};
+    use wiremock::matchers::{any, header, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[tokio::test]
+    async fn client_respects_once_per_second_limit_on_head_request_with_no_headers() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+        let client = GovernedClient::default();
+        let now = Instant::now();
+
+        let result = assert_ok!(client.head(&mock_server.uri(), None).await);
+        assert_eq!(result.status().as_u16(), 200);
+        let result = assert_ok!(client.head(&mock_server.uri(), None).await);
+        assert_eq!(result.status().as_u16(), 200);
+        assert_ge!(now.elapsed(), Duration::from_secs(1));
+    }
+
+    #[tokio::test]
+    async fn client_respects_once_per_second_limit_on_head_request_with_headers() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .and(header("If-None-Match", "TEST"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+        let client = GovernedClient::default();
+        let now = Instant::now();
+        let mut headers = HeaderMap::new();
+        headers.insert("If-None-Match", "TEST".parse().unwrap());
+
+        let result = assert_ok!(client.head(&mock_server.uri(), Some(headers.clone())).await);
+        assert_eq!(result.status().as_u16(), 200);
+        let result = assert_ok!(client.head(&mock_server.uri(), Some(headers)).await);
+        assert_eq!(result.status().as_u16(), 200);
+        assert_ge!(now.elapsed(), Duration::from_secs(1));
+    }
+
+    #[tokio::test]
+    async fn client_respects_once_per_second_limit_on_get_request() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+        let client = GovernedClient::default();
+        let now = Instant::now();
+
+        let result = assert_ok!(client.get(&mock_server.uri()).await);
+        assert_eq!(result.status().as_u16(), 200);
+        let result = assert_ok!(client.get(&mock_server.uri()).await);
+        assert_eq!(result.status().as_u16(), 200);
+        assert_ge!(now.elapsed(), Duration::from_secs(1));
+    }
+
+    #[tokio::test]
+    async fn client_returns_some_on_valid_etag_get() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .and(header("If-None-Match", "TEST"))
+            .respond_with(ResponseTemplate::new(200).insert_header("etag", "not-test"))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).insert_header("etag", "not-test"))
+            .mount(&mock_server)
+            .await;
+
+        let client = GovernedClient::default();
+        let now = Instant::now();
+        let mut headers = HeaderMap::new();
+        headers.insert("If-None-Match", "TEST".parse().unwrap());
+
+        let result = assert_some!(assert_ok!(
+            client
+                .get_if_etag_modified(&mock_server.uri(), "TEST")
+                .await
+        ));
+        assert_eq!(result.status().as_u16(), 200);
+        assert_ge!(now.elapsed(), Duration::from_secs(1));
+    }
+
+    #[tokio::test]
+    async fn client_returns_none_on_unchanged_etag_get() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .and(header("If-None-Match", "TEST"))
+            .respond_with(ResponseTemplate::new(304).insert_header("etag", "not-test"))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = GovernedClient::default();
+        let now = Instant::now();
+        let mut headers = HeaderMap::new();
+        headers.insert("If-None-Match", "TEST".parse().unwrap());
+
+        assert_none!(assert_ok!(
+            client
+                .get_if_etag_modified(&mock_server.uri(), "TEST")
+                .await
+        ));
+        assert_le!(now.elapsed(), Duration::from_secs(1));
+    }
+}
