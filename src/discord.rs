@@ -2,7 +2,7 @@ use anyhow::Context;
 use reqwest::Url;
 use std::env;
 
-use crate::creeper::{Book, User};
+use crate::model::{Book, User};
 use serenity::async_trait;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{CommandResult, StandardFramework};
@@ -12,7 +12,7 @@ use serenity::model::id::ChannelId;
 use serenity::model::prelude::AttachmentType;
 use serenity::prelude::*;
 
-// use crate::creeper::get_books;
+// use crate::model::get_books;
 
 #[group]
 #[commands(ping)]

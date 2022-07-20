@@ -1,7 +1,7 @@
 use std::env;
 use std::str::FromStr;
 
-use bookcreep::creeper::creep;
+use bookcreep::crawler::crawl;
 use bookcreep::discord::get_discord_client;
 
 #[tokio::main]
@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
     let _channel_no: i64 = 996656225871740971;
     let (discord_result, creeper_result) = tokio::join!(
         discord_client.start(),
-        creep(&cache_and_http.http, database)
+        crawl(&cache_and_http.http, database)
     );
 
     if let Err(why) = discord_result {
