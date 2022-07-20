@@ -24,6 +24,11 @@ serenity = {version = "0.11.2", default-features = false, features = ["client", 
 sqlx = { version = "0.6.0", default-features = false, features = ["sqlite", "runtime-tokio-rustls", "chrono", "macros", "migrate", "offline" ] }
 tokio = { version = "1.20.0", features = ["macros", "rt-multi-thread", "time"] }
 
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["registry", "env-filter"] }
+tracing-bunyan-formatter = "0.3"
+tracing-log = "0.1"
+
 [dev-dependencies]
 wiremock = "0.5"
 claim = { git = "https://github.com/Turbo87/rust-claim.git", rev = "23892a3" }

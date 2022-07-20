@@ -3,9 +3,13 @@ use std::str::FromStr;
 
 use bookcreep::crawler::crawl;
 use bookcreep::discord::get_discord_client;
+use bookcreep::telemetry::{get_subscriber, init_subscriber};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let subscriber = get_subscriber("bookcreep".into(), "info".into(), std::io::stdout);
+    init_subscriber(subscriber);
+
     let database = sqlx::sqlite::SqlitePoolOptions::new()
         .max_connections(5)
         .connect_with(

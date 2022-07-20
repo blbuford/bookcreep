@@ -27,7 +27,7 @@ pub async fn crawl(http: impl AsRef<Http>, pool: SqlitePool) -> anyhow::Result<(
         sleep(Duration::from_millis(1000 * 60)).await;
     }
 }
-
+#[tracing::instrument(name = "Checking a user's RSS feed", skip(client, pool))]
 async fn check_rss(user: &User, pool: &SqlitePool, client: &GovernedClient) -> Option<Vec<Book>> {
     let url = format!(
         "https://www.goodreads.com/review/list_rss/{}?shelf=read",
@@ -74,7 +74,7 @@ async fn check_rss(user: &User, pool: &SqlitePool, client: &GovernedClient) -> O
             }
         }
         Err(why) => {
-            println!("RSS Pull failed because: {}", why);
+            tracing::error!("RSS Pull failed because: {}", why);
             user.update_timestamp(pool)
                 .await
                 .expect("unable to update timestamp in database");
@@ -83,6 +83,7 @@ async fn check_rss(user: &User, pool: &SqlitePool, client: &GovernedClient) -> O
     }
 }
 
+#[tracing::instrument(name = "Retrieving RSS feed", skip(client))]
 pub async fn pull_rss(
     client: &GovernedClient,
     url: &str,
@@ -111,9 +112,9 @@ pub async fn pull_rss(
     let content = resp
         .text()
         .await
-        .with_context(|| "Unable to parse response to bytes")?;
+        .with_context(|| "Unable to get text from response")?;
 
-    let rss: Rss = from_str(&content).expect("Unable deserialize string");
+    let rss: Rss = from_str(&content).with_context(|| "Unable deserialize response")?;
 
     Ok(RssResult { rss, etag })
 }
