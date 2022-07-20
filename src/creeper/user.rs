@@ -7,7 +7,7 @@ pub struct User {
     pub goodreads_user_id: i64,
     pub last_etag: Option<String>,
     pub last_checked: i64,
-    pub last_isbn: Option<String>,
+    pub last_book_id: Option<String>,
 }
 
 impl User {
@@ -16,14 +16,14 @@ impl User {
         goodreads_user_id: i64,
         last_etag: Option<String>,
         last_checked: i64,
-        last_isbn: Option<String>,
+        last_book_id: Option<String>,
     ) -> Self {
         Self {
             discord_user_id,
             goodreads_user_id,
             last_etag,
             last_checked,
-            last_isbn,
+            last_book_id,
         }
     }
     pub async fn add_user_to_db(&self, pool: &SqlitePool) -> anyhow::Result<()> {
@@ -36,16 +36,19 @@ impl User {
             self.goodreads_user_id,
             self.last_etag,
             self.last_checked,
-            self.last_isbn,
+            self.last_book_id,
         )
         .execute(&mut conn)
         .await?;
 
         Ok(())
     }
-    pub async fn get_refreshable_users(pool: &SqlitePool, last_refreshed_minutes_ago: i64) -> anyhow::Result<Option<Vec<User>>> {
+    pub async fn get_refreshable_users(
+        pool: &SqlitePool,
+        last_refreshed_minutes_ago: i64,
+    ) -> anyhow::Result<Option<Vec<User>>> {
         let mut conn = pool.acquire().await?;
-        let timestamp = Utc::now().timestamp() - 60 * last_refreshed_minutes_ago; 
+        let timestamp = Utc::now().timestamp() - 60 * last_refreshed_minutes_ago;
         let results = sqlx::query!(r#"SELECT * FROM users WHERE last_checked < ?"#, timestamp)
             .fetch_all(&mut conn)
             .await?
@@ -56,7 +59,7 @@ impl User {
                     record.goodreads_user_id,
                     record.last_etag.to_owned(),
                     record.last_checked,
-                    record.last_isbn.to_owned(),
+                    record.last_book_id.to_owned(),
                 )
             })
             .collect::<Vec<User>>();
@@ -66,5 +69,54 @@ impl User {
         } else {
             Ok(None)
         }
+    }
+
+    pub async fn update(
+        &self,
+        pool: &SqlitePool,
+        last_book_id: &str,
+        last_etag: Option<String>,
+    ) -> anyhow::Result<()> {
+        let mut conn = pool.acquire().await?;
+        let now = Utc::now().timestamp();
+        match last_etag {
+            None => {
+                sqlx::query!(
+                    r#"UPDATE users SET last_book_id = ?, last_checked = ? WHERE discord_user_id = ?"#,
+                    last_book_id,
+                    now,
+                    self.discord_user_id
+                )
+                .execute(&mut conn)
+                .await?;
+            }
+            Some(last_etag) => {
+                sqlx::query!(
+            r#"UPDATE users SET last_book_id = ?, last_etag = ?, last_checked = ? WHERE discord_user_id = ?"#,
+            last_book_id,
+            last_etag,
+            now,
+            self.discord_user_id
+        )
+                    .execute(&mut conn)
+                    .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_timestamp(&self, pool: &SqlitePool) -> anyhow::Result<()> {
+        let mut conn = pool.acquire().await?;
+        let now = Utc::now().timestamp();
+        sqlx::query!(
+            r#"UPDATE users SET last_checked = ? WHERE discord_user_id = ?"#,
+            now,
+            self.discord_user_id
+        )
+        .execute(&mut conn)
+        .await?;
+
+        Ok(())
     }
 }

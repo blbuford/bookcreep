@@ -1,9 +1,15 @@
+use anyhow::Context;
+use reqwest::Url;
 use std::env;
 
+use crate::creeper::{Book, User};
 use serenity::async_trait;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{CommandResult, StandardFramework};
+use serenity::http::Http;
 use serenity::model::channel::Message;
+use serenity::model::id::ChannelId;
+use serenity::model::prelude::AttachmentType;
 use serenity::prelude::*;
 
 // use crate::creeper::get_books;
@@ -18,7 +24,7 @@ struct Handler;
 impl EventHandler for Handler {}
 
 #[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+async fn ping(ctx: &serenity::prelude::Context, msg: &Message) -> CommandResult {
     // let t = get_books().await?;
 
     msg.reply(ctx, "pannnic").await?;
@@ -40,4 +46,29 @@ pub async fn get_discord_client() -> serenity::Client {
         .await
         .expect("Error creating client");
     client
+}
+
+pub async fn post_book(
+    http: impl AsRef<Http>,
+    book: &Book,
+    user: &User,
+) -> anyhow::Result<Message> {
+    let rating = "⭐".repeat(book.rating());
+    let msg = format!(
+        "🎉\n <@{}> finished {} by {}",
+        user.discord_user_id,
+        book.title(),
+        book.author()
+    );
+    let channel = ChannelId(996656225871740971);
+    channel
+        .send_message(&http, |m| {
+            m.add_embed(|e| e.url(book.url()).description(rating).title("Review"))
+                .content(msg)
+                .add_file(AttachmentType::Image(
+                    Url::parse(book.image()).expect("valid url struct for the book image"),
+                ))
+        })
+        .await
+        .with_context(|| format!("Unable to send message to discord channel {}", channel))
 }

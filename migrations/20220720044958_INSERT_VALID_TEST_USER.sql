@@ -1,0 +1,2 @@
+-- Add migration script here
+INSERT INTO users VALUES (562131151620145172, 2586157, NULL, 0, '43848929');
