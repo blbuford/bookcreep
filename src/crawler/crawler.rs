@@ -9,7 +9,7 @@ use crate::discord::post_book;
 use crate::model::Book;
 use crate::model::User;
 
-pub async fn crawl(http: impl AsRef<Http>, pool: SqlitePool) -> anyhow::Result<()> {
+pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<()> {
     let client = GovernedClient::default();
     loop {
         if let Some(users) = User::get_refreshable_users(&pool, 5).await? {

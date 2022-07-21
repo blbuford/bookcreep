@@ -48,6 +48,7 @@ pub async fn get_discord_client() -> serenity::Client {
     client
 }
 
+#[tracing::instrument(name = "Posting message to discord", skip(http))]
 pub async fn post_book(
     http: impl AsRef<Http>,
     book: &Book,

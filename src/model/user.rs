@@ -26,6 +26,7 @@ impl User {
             last_book_id,
         }
     }
+    #[tracing::instrument(name = "Creating new user", skip(pool))]
     pub async fn add_user_to_db(&self, pool: &SqlitePool) -> anyhow::Result<()> {
         let mut conn = pool.acquire().await?;
         sqlx::query!(
@@ -43,6 +44,10 @@ impl User {
 
         Ok(())
     }
+    #[tracing::instrument(
+        name = "Getting all refreshable users",
+        skip(pool, last_refreshed_minutes_ago)
+    )]
     pub async fn get_refreshable_users(
         pool: &SqlitePool,
         last_refreshed_minutes_ago: i64,
@@ -70,7 +75,7 @@ impl User {
             Ok(None)
         }
     }
-
+    #[tracing::instrument(name = "Updating user", skip(pool))]
     pub async fn update(
         &self,
         pool: &SqlitePool,
@@ -106,6 +111,7 @@ impl User {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Updating user (timestamp checked only)", skip(pool))]
     pub async fn update_timestamp(&self, pool: &SqlitePool) -> anyhow::Result<()> {
         let mut conn = pool.acquire().await?;
         let now = Utc::now().timestamp();
