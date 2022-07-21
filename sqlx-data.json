@@ -52,26 +52,6 @@
     },
     "query": "UPDATE users SET last_book_id = ?, last_etag = ?, last_checked = ? WHERE discord_user_id = ?"
   },
-  "c44377a5a408ba026ecdc2e8c0cb9f2e25a4ed2973bae6c056c848955cc08e27": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 3
-      }
-    },
-    "query": "UPDATE users SET last_book_id = ?, last_checked = ? WHERE discord_user_id = ?"
-  },
-  "db2843319aac57426bed71f317dfe2fdfd2e8b57c9208d5c7e2adb84cedb9802": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 2
-      }
-    },
-    "query": "UPDATE users SET last_checked = ? WHERE discord_user_id = ?"
-  },
   "e910be16c56dcee9449ee0e2803ade12929b29a9c864ff80bc2c200c75e2e814": {
     "describe": {
       "columns": [],

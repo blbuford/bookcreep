@@ -15,7 +15,7 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
     loop {
         if let Some(mut users) = User::get_refreshable_users(&pool, 5).await? {
             for mut user in users.iter_mut() {
-                match check_rss(&mut user, &client).await {
+                match check_rss(&mut user, &client, "https://www.goodreads.com").await {
                     Ok(result) => {
                         if let Some(books) = result {
                             for book in books.iter() {
@@ -43,10 +43,14 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
     }
 }
 #[tracing::instrument(name = "Checking a user's RSS feed", skip(client))]
-async fn check_rss(user: &mut User, client: &GovernedClient) -> anyhow::Result<Option<Vec<Book>>> {
+async fn check_rss(
+    user: &mut User,
+    client: &GovernedClient,
+    base_uri: &str,
+) -> anyhow::Result<Option<Vec<Book>>> {
     let url = format!(
-        "https://www.goodreads.com/review/list_rss/{}?shelf=read",
-        user.goodreads_user_id
+        "{}/review/list_rss/{}?shelf=read",
+        base_uri, user.goodreads_user_id
     );
 
     let RssResult { rss, etag } = get_rss_feed(&client, &url, &user.last_etag).await?;
@@ -63,12 +67,13 @@ async fn check_rss(user: &mut User, client: &GovernedClient) -> anyhow::Result<O
                 break;
             }
         }
-        if !book_list.is_empty() {
+        if let Some(first) = book_list.first() {
+            user.set_last_book_id(Some(first.id().to_string()));
             return Ok(Some(book_list));
         }
     } else {
         // Crawler has never run for this user
-        if let Some(item) = dbg!(rss.channel.items.first()) {
+        if let Some(item) = rss.channel.items.first() {
             user.set_last_book_id(Some(item.id.to_string()));
         }
     }
@@ -77,7 +82,7 @@ async fn check_rss(user: &mut User, client: &GovernedClient) -> anyhow::Result<O
 }
 
 #[tracing::instrument(name = "Retrieving RSS feed", skip(client))]
-pub async fn get_rss_feed(
+async fn get_rss_feed(
     client: &GovernedClient,
     url: &str,
     last_etag: &Option<String>,
@@ -110,4 +115,174 @@ pub async fn get_rss_feed(
     let rss: Rss = from_str(&content).with_context(|| "Unable deserialize response")?;
 
     Ok(RssResult { rss, etag })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::crawler::crawler::{check_rss, get_rss_feed};
+    use crate::crawler::{GovernedClient, RssResult};
+    use crate::model::User;
+    use claim::{assert_err, assert_none, assert_ok, assert_some};
+    use tokio::fs::read_to_string;
+    use wiremock::matchers::{any, method};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    async fn get_test_data() -> String {
+        read_to_string("./src/crawler/test_data/data.xml")
+            .await
+            .expect("Unable to read in test data")
+    }
+
+    #[tokio::test]
+    async fn get_rss_feed_fails_on_unmodified_etag() {
+        let client = GovernedClient::default();
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .respond_with(ResponseTemplate::new(304).insert_header("etag", "test"))
+            .mount(&mock_server)
+            .await;
+
+        let err =
+            assert_err!(get_rss_feed(&client, &mock_server.uri(), &Some("test".to_string())).await);
+        assert!(err.to_string().contains("ETAG is unmodified"))
+    }
+
+    #[tokio::test]
+    async fn get_rss_feed_fails_on_remote_server_error() {
+        let client = GovernedClient::default();
+        let mock_server = MockServer::start().await;
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&mock_server)
+            .await;
+
+        let err =
+            assert_err!(get_rss_feed(&client, &mock_server.uri(), &Some("test".to_string())).await);
+        assert!(err.to_string().contains("GET request returned HTTP 500"))
+    }
+
+    #[tokio::test]
+    async fn get_rss_feed_succeeds_on_valid_response_no_etag() {
+        let client = GovernedClient::default();
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(get_test_data().await))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let RssResult { etag, .. } =
+            assert_ok!(get_rss_feed(&client, &mock_server.uri(), &Some("test".to_string())).await);
+
+        assert_none!(etag);
+    }
+
+    #[tokio::test]
+    async fn get_rss_feed_succeeds_on_valid_response_with_etag() {
+        let client = GovernedClient::default();
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("HEAD"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        Mock::given(method("GET"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("etag", "new-etag")
+                    .set_body_string(get_test_data().await),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let RssResult { etag, .. } =
+            assert_ok!(get_rss_feed(&client, &mock_server.uri(), &Some("test".to_string())).await);
+
+        assert!(assert_some!(etag).contains("new-etag"));
+    }
+
+    #[tokio::test]
+    async fn check_rss_updates_user_correctly_for_first_time_crawl() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(get_test_data().await))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = GovernedClient::default();
+        let mut user = User::new(0, 0, None, 0, None);
+        assert_none!(assert_ok!(
+            check_rss(&mut user, &client, &mock_server.uri()).await
+        ));
+        assert_some!(user.last_book_id);
+    }
+
+    #[tokio::test]
+    async fn check_rss_updates_user_last_etag_upon_etag_modification() {
+        let mock_server = MockServer::start().await;
+        Mock::given(method("HEAD"))
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+        Mock::given(method("GET"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("etag", "new-etag")
+                    .set_body_string(get_test_data().await),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = GovernedClient::default();
+        let mut user = User::new(
+            0,
+            0,
+            Some("old-etag".to_string()),
+            0,
+            Some("4981".to_string()),
+        );
+        assert_none!(assert_ok!(
+            check_rss(&mut user, &client, &mock_server.uri()).await
+        ));
+        assert_eq!(assert_some!(user.last_etag), "new-etag");
+    }
+
+    #[tokio::test]
+    async fn check_rss_returns_book_list_for_new_books_read() {
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("GET"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .insert_header("etag", "new-etag")
+                    .set_body_string(get_test_data().await),
+            )
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        let client = GovernedClient::default();
+        let mut user = User::new(0, 0, None, 0, Some("43848929".to_string()));
+        let book_list = assert_some!(assert_ok!(
+            check_rss(&mut user, &client, &mock_server.uri()).await
+        ));
+        assert_eq!(book_list.len(), 2);
+        assert_eq!(assert_some!(user.last_etag), "new-etag");
+        assert_eq!(assert_some!(user.last_book_id), "4981");
+    }
 }

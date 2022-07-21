@@ -30,7 +30,6 @@ impl Book {
         image_url: &str,
     ) -> Option<Self> {
         let completed_date = NaiveDate::parse_from_str(&completed, "%a, %d %h %Y %H:%M:%S %z");
-        dbg!(&completed_date);
         match completed_date {
             Ok(date) => Some(Book {
                 title: title.to_string(),

@@ -80,7 +80,7 @@ mod tests {
     use claim::{assert_ge, assert_le, assert_none, assert_ok, assert_some};
     use reqwest::header::HeaderMap;
     use std::time::{Duration, Instant};
-    use wiremock::matchers::{any, header, method, path};
+    use wiremock::matchers::{header, method};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     #[tokio::test]

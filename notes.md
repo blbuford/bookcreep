@@ -8,3 +8,10 @@
 
 | discord-id | goodreads-id | last seen ETAG from goodreads | last checked datetime |
 |----------------|----------------|----------------|----------------|
+
+# Todo
+- Unit tests for the RSS crawler
+- Discord commands for a user to add/remove themselves from the crawl
+- Bot configuration--what channel does it post in. Admin allowed to choose a channel to work in. 
+- Containerization
+- Deployment

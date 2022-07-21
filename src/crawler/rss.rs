@@ -47,6 +47,7 @@ pub struct Rss {
     pub channel: Channel,
 }
 
+#[derive(Debug)]
 pub struct RssResult {
     pub rss: Rss,
     pub etag: Option<String>,

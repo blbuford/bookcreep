@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+	xmlns:atom="http://www.w3.org/2005/Atom" >
+	<channel>
+		<xhtml:meta
+			xmlns:xhtml="http://www.w3.org/1999/xhtml" name="robots" content="noindex" />
+			<title>Brett's bookshelf: read</title>
+			<item>
+				<pubDate>
+					<![CDATA[Wed, 13 Jul 2022 08:30:56 -0700]]>
+				</pubDate>
+				<title>Slaughterhouse-Five</title>
+				<link>
+					<![CDATA[https://www.goodreads.com/review/show/4830608100?utm_medium=api&utm_source=rss]]>
+				</link>
+				<book_id>4981</book_id>
+				<book_medium_image_url>
+					<![CDATA[https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1440319389l/4981._SX98_.jpg]]>
+				</book_medium_image_url>
+				<author_name>Kurt Vonnegut Jr.</author_name>
+				<user_rating>3</user_rating>
+			</item>
+			<item>
+				
+				<pubDate>
+					<![CDATA[Wed, 06 Jul 2022 19:07:34 -0700]]>
+				</pubDate>
+				<title>Meditations</title>
+				<link>
+					<![CDATA[https://www.goodreads.com/review/show/4807234290?utm_medium=api&utm_source=rss]]>
+				</link>
+				<book_id>30659</book_id>
+				
+				<book_medium_image_url>
+					<![CDATA[https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1421618636l/30659._SX98_.jpg]]>
+				</book_medium_image_url>
+				
+				<author_name>Marcus Aurelius</author_name>
+				
+				<user_rating>4</user_rating>
+				
+			</item>
+			<item>
+				
+				<pubDate>
+					<![CDATA[Sun, 26 Jun 2022 18:16:24 -0700]]>
+				</pubDate>
+				<title>
+					<![CDATA[Talking to Strangers: What We Should Know About the People We Don’t Know]]>
+				</title>
+				<link>
+					<![CDATA[https://www.goodreads.com/review/show/4807233862?utm_medium=api&utm_source=rss]]>
+				</link>
+				<book_id>43848929</book_id>
+				
+				<book_medium_image_url>
+					<![CDATA[https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1549393502l/43848929._SX98_.jpg]]>
+				</book_medium_image_url>
+				
+				<author_name>Malcolm Gladwell</author_name>
+				
+				<user_rating>3</user_rating>
+				
+			</item>
+			<item>
+				
+				<pubDate>
+					<![CDATA[Wed, 22 Jun 2022 02:06:44 -0700]]>
+				</pubDate>
+				<title>Crime and Punishment</title>
+				<link>
+					<![CDATA[https://www.goodreads.com/review/show/4775706118?utm_medium=api&utm_source=rss]]>
+				</link>
+				<book_id>7144</book_id>
+				
+				<book_medium_image_url>
+					<![CDATA[https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/1382846449l/7144._SX98_.jpg]]>
+				</book_medium_image_url>
+				
+				<author_name>Fyodor Dostoevsky</author_name>
+				
+				<user_rating>4</user_rating>
+				
+			</item>
+	</channel>
+</rss>
