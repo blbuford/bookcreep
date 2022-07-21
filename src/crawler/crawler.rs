@@ -11,15 +11,15 @@ use crate::model::User;
 
 pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<()> {
     let client = GovernedClient::default();
+
     loop {
         if let Some(users) = User::get_refreshable_users(&pool, 5).await? {
-            for i in 0..users.len() {
-                let books = check_rss(&users[i], &pool, &client).await;
-                if let Some(books) = books {
-                    for j in 0..books.len() {
-                        post_book(&http, &books[j], &users[i])
+            for user in users.iter() {
+                if let Some(books) = check_rss(&user, &pool, &client).await {
+                    for book in books.iter() {
+                        post_book(&http, &book, &user)
                             .await
-                            .expect("Unable to post book to discord!");
+                            .context("Unable to post book to discord!")?;
                     }
                 }
             }
