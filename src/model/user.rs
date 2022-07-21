@@ -76,53 +76,42 @@ impl User {
         }
     }
     #[tracing::instrument(name = "Updating user", skip(pool))]
-    pub async fn update(
-        &self,
-        pool: &SqlitePool,
-        last_book_id: &str,
-        last_etag: Option<String>,
-    ) -> anyhow::Result<()> {
+    pub async fn update(&mut self, pool: &SqlitePool) -> anyhow::Result<()> {
         let mut conn = pool.acquire().await?;
-        let now = Utc::now().timestamp();
-        match last_etag {
-            None => {
-                sqlx::query!(
-                    r#"UPDATE users SET last_book_id = ?, last_checked = ? WHERE discord_user_id = ?"#,
-                    last_book_id,
-                    now,
-                    self.discord_user_id
-                )
-                .execute(&mut conn)
-                .await?;
-            }
-            Some(last_etag) => {
-                sqlx::query!(
+        self.last_checked = Utc::now().timestamp();
+
+        sqlx::query!(
             r#"UPDATE users SET last_book_id = ?, last_etag = ?, last_checked = ? WHERE discord_user_id = ?"#,
-            last_book_id,
-            last_etag,
-            now,
+            self.last_book_id,
+            self.last_etag,
+            self.last_checked,
             self.discord_user_id
         )
-                    .execute(&mut conn)
-                    .await?;
-            }
-        }
+            .execute(&mut conn)
+            .await?;
 
         Ok(())
     }
 
-    #[tracing::instrument(name = "Updating user (timestamp checked only)", skip(pool))]
-    pub async fn update_timestamp(&self, pool: &SqlitePool) -> anyhow::Result<()> {
-        let mut conn = pool.acquire().await?;
-        let now = Utc::now().timestamp();
-        sqlx::query!(
-            r#"UPDATE users SET last_checked = ? WHERE discord_user_id = ?"#,
-            now,
-            self.discord_user_id
-        )
-        .execute(&mut conn)
-        .await?;
+    // #[tracing::instrument(name = "Updating user (timestamp checked only)", skip(pool))]
+    // pub async fn update_timestamp(&self, pool: &SqlitePool) -> anyhow::Result<()> {
+    //     let mut conn = pool.acquire().await?;
+    //     let now = Utc::now().timestamp();
+    //     sqlx::query!(
+    //         r#"UPDATE users SET last_checked = ?, lastWHERE discord_user_id = ?"#,
+    //         now,
+    //         self.discord_user_id
+    //     )
+    //     .execute(&mut conn)
+    //     .await?;
+    //
+    //     Ok(())
+    // }
+    pub fn set_last_book_id(&mut self, id: Option<String>) {
+        self.last_book_id = id;
+    }
 
-        Ok(())
+    pub fn set_last_etag(&mut self, etag: Option<String>) {
+        self.last_etag = etag;
     }
 }

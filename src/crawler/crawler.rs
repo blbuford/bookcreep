@@ -13,13 +13,28 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
     let client = GovernedClient::default();
 
     loop {
-        if let Some(users) = User::get_refreshable_users(&pool, 5).await? {
-            for user in users.iter() {
-                if let Some(books) = check_rss(&user, &pool, &client).await {
-                    for book in books.iter() {
-                        post_book(&http, &book, &user)
+        if let Some(mut users) = User::get_refreshable_users(&pool, 5).await? {
+            for mut user in users.iter_mut() {
+                match check_rss(&mut user, &client).await {
+                    Ok(result) => {
+                        if let Some(books) = result {
+                            for book in books.iter() {
+                                post_book(&http, &book, &user)
+                                    .await
+                                    .context("Unable to post book to discord!")?;
+                            }
+                        }
+                        user.update(pool)
                             .await
-                            .context("Unable to post book to discord!")?;
+                            .context("unable to update timestamp in database")?;
+                    }
+                    Err(why) => {
+                        tracing::error!(
+                            error.cause_chain = ?why,
+                            error.message = %why,
+                            "RSS check failed because: {}",
+                            why
+                        );
                     }
                 }
             }
@@ -27,64 +42,42 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
         sleep(Duration::from_millis(1000 * 60)).await;
     }
 }
-#[tracing::instrument(name = "Checking a user's RSS feed", skip(client, pool))]
-async fn check_rss(user: &User, pool: &SqlitePool, client: &GovernedClient) -> Option<Vec<Book>> {
+#[tracing::instrument(name = "Checking a user's RSS feed", skip(client))]
+async fn check_rss(user: &mut User, client: &GovernedClient) -> anyhow::Result<Option<Vec<Book>>> {
     let url = format!(
         "https://www.goodreads.com/review/list_rss/{}?shelf=read",
         user.goodreads_user_id
     );
 
-    let response = pull_rss(&client, &url, &user.last_etag).await;
-
-    match response {
-        Ok(RssResult { rss, etag }) => {
-            if let Some(last_book_id) = &user.last_book_id {
-                // get items up to the last book id
-                let mut book_list: Vec<Book> = Vec::new();
-                for i in 0..rss.channel.items.len() {
-                    let item = &rss.channel.items[i];
-                    if &item.id != last_book_id {
-                        if let Ok(book) = item.try_into() {
-                            book_list.push(book);
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                if !book_list.is_empty() {
-                    let first = book_list.first().expect("no items in booklist");
-                    user.update(pool, first.id(), etag)
-                        .await
-                        .expect("unable to update database");
-                    Some(book_list)
-                } else {
-                    user.update_timestamp(pool)
-                        .await
-                        .expect("unable to update timestamp in database");
-                    None
+    let RssResult { rss, etag } = get_rss_feed(&client, &url, &user.last_etag).await?;
+    user.set_last_etag(etag);
+    if let Some(last_book_id) = &user.last_book_id {
+        // get items up to the last book id
+        let mut book_list: Vec<Book> = Vec::new();
+        for item in rss.channel.items.iter() {
+            if &item.id != last_book_id {
+                if let Ok(book) = item.try_into() {
+                    book_list.push(book);
                 }
             } else {
-                // never run
-                let item = rss.channel.items.first().expect("No items in the channel!");
-                let last_isbn = item.id.to_string();
-                user.update(pool, &last_isbn, etag)
-                    .await
-                    .expect("unable to update database");
-                None
+                break;
             }
         }
-        Err(why) => {
-            tracing::error!("RSS Pull failed because: {}", why);
-            user.update_timestamp(pool)
-                .await
-                .expect("unable to update timestamp in database");
-            None
+        if !book_list.is_empty() {
+            return Ok(Some(book_list));
+        }
+    } else {
+        // Crawler has never run for this user
+        if let Some(item) = dbg!(rss.channel.items.first()) {
+            user.set_last_book_id(Some(item.id.to_string()));
         }
     }
+
+    Ok(None)
 }
 
 #[tracing::instrument(name = "Retrieving RSS feed", skip(client))]
-pub async fn pull_rss(
+pub async fn get_rss_feed(
     client: &GovernedClient,
     url: &str,
     last_etag: &Option<String>,
