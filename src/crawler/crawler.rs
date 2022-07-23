@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context};
 use quick_xml::de::from_str;
 use serenity::http::Http;
 use sqlx::SqlitePool;
+use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
 use crate::crawler::{GovernedClient, Rss, RssResult};
@@ -9,8 +10,9 @@ use crate::discord::post_book;
 use crate::model::Book;
 use crate::model::User;
 
-pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<()> {
+pub async fn crawl(http: impl AsRef<Http>, pool: Arc<SqlitePool>) -> anyhow::Result<()> {
     let client = GovernedClient::default();
+    let pool = &*pool;
 
     loop {
         if let Some(mut users) = User::get_refreshable_users(&pool, 5).await? {
@@ -19,7 +21,7 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
                     Ok(result) => {
                         if let Some(books) = result {
                             for book in books.iter() {
-                                post_book(&http, &book, &user)
+                                post_book(&http, &book, &user, user.get_channel_id(pool).await?)
                                     .await
                                     .context("Unable to post book to discord!")?;
                             }
@@ -42,7 +44,7 @@ pub async fn crawl(http: impl AsRef<Http>, pool: &SqlitePool) -> anyhow::Result<
         sleep(Duration::from_millis(1000 * 60)).await;
     }
 }
-#[tracing::instrument(name = "Checking a user's RSS feed", skip(client))]
+#[tracing::instrument(name = "Checking a user's RSS feed", skip(client, base_uri))]
 async fn check_rss(
     user: &mut User,
     client: &GovernedClient,
@@ -223,7 +225,7 @@ mod tests {
             .await;
 
         let client = GovernedClient::default();
-        let mut user = User::new(0, 0, None, 0, None);
+        let mut user = User::new(0, 0, 0, 0, None, 0, None);
         assert_none!(assert_ok!(
             check_rss(&mut user, &client, &mock_server.uri()).await
         ));
@@ -252,6 +254,8 @@ mod tests {
         let mut user = User::new(
             0,
             0,
+            0,
+            0,
             Some("old-etag".to_string()),
             0,
             Some("4981".to_string()),
@@ -277,7 +281,7 @@ mod tests {
             .await;
 
         let client = GovernedClient::default();
-        let mut user = User::new(0, 0, None, 0, Some("43848929".to_string()));
+        let mut user = User::new(0, 0, 0, 0, None, 0, Some("43848929".to_string()));
         let book_list = assert_some!(assert_ok!(
             check_rss(&mut user, &client, &mock_server.uri()).await
         ));

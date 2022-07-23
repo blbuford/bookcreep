@@ -5,13 +5,16 @@
 - Bot should persist who its lurking, and the last seen 
 
 # Schema
+### Users
+| id  | discord_id | discord_guild_id | goodreads_id | last_seen_ETAG | last_checked | last_book_id |
+|-----|------------|------------------|--------------|----------------|--------------|--------------|
 
-| discord-id | goodreads-id | last seen ETAG from goodreads | last checked datetime |
-|----------------|----------------|----------------|----------------|
-
+### Guilds
+| guild_id | guild_name | notify_channel_id |
+|----------|------------|-------------------|
 # Todo
-- Unit tests for the RSS crawler
-- Discord commands for a user to add/remove themselves from the crawl
-- Bot configuration--what channel does it post in. Admin allowed to choose a channel to work in. 
-- Containerization
-- Deployment
+- [x] Unit tests for the RSS crawler
+- [ ] Discord commands for a user to add/remove themselves from the crawl
+- [ ] Bot configuration--what channel does it post in. Admin allowed to choose a channel to work in. 
+- [ ] Containerization
+- [ ] Deployment

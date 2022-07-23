@@ -1,26 +1,29 @@
 use std::env;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::crawler::crawl;
 use crate::discord::get_discord_client;
 
 pub async fn run_until_stopped() -> anyhow::Result<()> {
-    let database = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(
-            sqlx::sqlite::SqliteConnectOptions::from_str(&env::var("DATABASE_URL")?)?
-                .create_if_missing(true),
-        )
-        .await
-        .expect("Couldn't connect to database");
+    let database = Arc::new(
+        sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect_with(
+                sqlx::sqlite::SqliteConnectOptions::from_str(&env::var("DATABASE_URL")?)?
+                    .create_if_missing(true),
+            )
+            .await
+            .expect("Couldn't connect to database"),
+    );
 
-    let mut discord_client = get_discord_client().await;
-    let cache_and_http = discord_client.cache_and_http.clone();
     loop {
+        let mut discord_client = get_discord_client(database.clone()).await;
+        let cache_and_http = discord_client.cache_and_http.clone();
         tokio::select! {
             r = discord_client.start() => { report_exit("Discord Client", r) },
-            r = crawl(&cache_and_http.http, &database) => { report_exit("Crawler", r)},
+            r = crawl(&cache_and_http.http, database.clone()) => { report_exit("Crawler", r)},
         };
     }
 }

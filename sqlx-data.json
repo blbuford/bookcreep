@@ -1,35 +1,87 @@
 {
   "db": "SQLite",
-  "499afa07629934fbf07fc2f0519cf9e387f7816558eb9ac491081b1a69c9bbd7": {
+  "0e13d1ef846dd304a2fec7139cb30405c28828c9bac0321ac6099106f6e4dbc2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO guilds VALUES (?, ?, ?)"
+  },
+  "1909bd91f4ed535b802aa0db19b492685427d31e92dd6c642aa53c6abab6aeb9": {
     "describe": {
       "columns": [
         {
-          "name": "discord_user_id",
+          "name": "guild_id",
           "ordinal": 0,
           "type_info": "Int64"
         },
         {
-          "name": "goodreads_user_id",
+          "name": "guild_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "notify_channel_id",
+          "ordinal": 2,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT * FROM guilds WHERE guild_id = ?"
+  },
+  "499afa07629934fbf07fc2f0519cf9e387f7816558eb9ac491081b1a69c9bbd7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        },
+        {
+          "name": "discord_user_id",
           "ordinal": 1,
           "type_info": "Int64"
         },
         {
-          "name": "last_etag",
+          "name": "discord_guild_id",
           "ordinal": 2,
-          "type_info": "Text"
+          "type_info": "Int64"
         },
         {
-          "name": "last_checked",
+          "name": "goodreads_user_id",
           "ordinal": 3,
           "type_info": "Int64"
         },
         {
-          "name": "last_book_id",
+          "name": "last_etag",
           "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "last_checked",
+          "ordinal": 5,
+          "type_info": "Int64"
+        },
+        {
+          "name": "last_book_id",
+          "ordinal": 6,
           "type_info": "Text"
         }
       ],
       "nullable": [
+        false,
+        false,
         false,
         false,
         true,
@@ -42,6 +94,24 @@
     },
     "query": "SELECT * FROM users WHERE last_checked < ?"
   },
+  "7a4ca144ac9835cadfab2c8d2669da92a683bd134be552f8d80deb13247b0e5c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "notify_channel_id",
+          "ordinal": 0,
+          "type_info": "Int64"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT notify_channel_id FROM guilds JOIN users on guilds.guild_id = users.discord_guild_id WHERE users.id = ?"
+  },
   "9556f1f3b3221f398d265a3fd0ce87f8acef613f85f8351efd9ea2cb1f1d3b44": {
     "describe": {
       "columns": [],
@@ -52,14 +122,14 @@
     },
     "query": "UPDATE users SET last_book_id = ?, last_etag = ?, last_checked = ? WHERE discord_user_id = ?"
   },
-  "e910be16c56dcee9449ee0e2803ade12929b29a9c864ff80bc2c200c75e2e814": {
+  "99d745b867cc55710a0f9c40ec1252326c896e9853dba2f9cdfce2ab007a70fc": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
-        "Right": 5
+        "Right": 2
       }
     },
-    "query": "\n            INSERT INTO users VALUES (?, ?, ?, ?, ?)\n            "
+    "query": "UPDATE guilds SET notify_channel_id = ? WHERE guild_id = ?"
   }
 }
