@@ -44,7 +44,7 @@ pub async fn crawl(http: impl AsRef<Http>, pool: Arc<SqlitePool>) -> anyhow::Res
         sleep(Duration::from_millis(1000 * 60)).await;
     }
 }
-#[tracing::instrument(name = "Checking a user's RSS feed", skip(client, base_uri))]
+#[tracing::instrument(name = "Checking user's RSS feed", skip(client, base_uri))]
 async fn check_rss(
     user: &mut User,
     client: &GovernedClient,

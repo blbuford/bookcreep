@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use chrono::offset::Utc;
 use serenity::model::prelude::ChannelId;
-use sqlx::sqlite::SqlitePool;
+use sqlx::sqlite::{SqlitePool, SqliteQueryResult};
 
 #[derive(Debug)]
 pub struct User {
@@ -34,25 +34,50 @@ impl User {
             last_book_id,
         }
     }
-    // #[tracing::instrument(name = "Creating new user", skip(pool))]
-    // pub async fn add_user_to_db(&self, pool: &SqlitePool) -> anyhow::Result<()> {
-    //     let mut conn = pool.acquire().await?;
-    //     sqlx::query!(
-    //         r#"
-    //         INSERT INTO users (discord_user_id, discord_guild_id, goodreads_user_id, last_book_id)
-    //         VALUES (?, ?, ?, ?, ?)
-    //         "#,
-    //         self.discord_user_id,
-    //         self.goodreads_user_id,
-    //         self.last_etag,
-    //         self.last_checked,
-    //         self.last_book_id,
-    //     )
-    //     .execute(&mut conn)
-    //     .await?;
-    //
-    //     Ok(())
-    // }
+    #[tracing::instrument(name = "Creating new user", skip(pool))]
+    pub async fn create_new_user(
+        pool: &SqlitePool,
+        discord_user_id: i64,
+        discord_guild_id: i64,
+        goodreads_user_id: i64,
+    ) -> anyhow::Result<Self> {
+        let mut conn = pool.acquire().await?;
+
+        let result = sqlx::query!(
+            r#"
+            SELECT * FROM users WHERE discord_user_id = ? AND discord_guild_id = ?
+            "#,
+            discord_user_id,
+            discord_guild_id,
+        )
+        .fetch_all(&mut conn)
+        .await?;
+        if !result.is_empty() {
+            return Err(anyhow!("User already exists in database!"));
+        }
+
+        let result: SqliteQueryResult = sqlx::query!(
+            r#"
+            INSERT INTO users (discord_user_id, discord_guild_id, goodreads_user_id)
+            VALUES (?, ?, ?)
+            "#,
+            discord_user_id,
+            discord_guild_id,
+            goodreads_user_id,
+        )
+        .execute(&mut conn)
+        .await?;
+
+        Ok(User::new(
+            result.last_insert_rowid(),
+            discord_user_id,
+            discord_guild_id,
+            goodreads_user_id,
+            None,
+            0,
+            None,
+        ))
+    }
     #[tracing::instrument(
         name = "Getting all refreshable users",
         skip(pool, last_refreshed_minutes_ago)

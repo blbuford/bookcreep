@@ -6,8 +6,8 @@
 
 # Schema
 ### Users
-| id  | discord_id | discord_guild_id | goodreads_id | last_seen_ETAG | last_checked | last_book_id |
-|-----|------------|------------------|--------------|----------------|--------------|--------------|
+| id  | discord_id | discord_guild_id | goodreads_id | last_ETAG | last_checked | last_book_id |
+|-----|------------|------------------|--------------|-----------|--------------|--------------|
 
 ### Guilds
 | guild_id | guild_name | notify_channel_id |

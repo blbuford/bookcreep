@@ -1,5 +1,5 @@
-mod ping;
+mod lurk;
 mod set_notify_channel;
 
-pub use ping::*;
+pub use lurk::*;
 pub use set_notify_channel::*;
