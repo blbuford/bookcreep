@@ -129,6 +129,28 @@ impl User {
         Ok(())
     }
 
+    #[tracing::instrument(name = "Deleting user", skip(pool))]
+    pub async fn delete(
+        pool: &SqlitePool,
+        discord_user_id: i64,
+        discord_guild_id: i64,
+    ) -> anyhow::Result<()> {
+        let mut conn = pool.acquire().await?;
+
+        let result: SqliteQueryResult = sqlx::query!(
+            r#"DELETE FROM users WHERE discord_user_id = ? AND discord_guild_id = ?"#,
+            discord_user_id,
+            discord_guild_id
+        )
+        .execute(&mut conn)
+        .await?;
+        match result.rows_affected() {
+            0 => Err(anyhow!("User not found")),
+            1 => Ok(()),
+            _ => Err(anyhow!("Multiple users deleted!")),
+        }
+    }
+
     #[tracing::instrument(name = "Retrieving channel id for user", skip(pool))]
     pub async fn get_channel_id(&self, pool: &SqlitePool) -> anyhow::Result<ChannelId> {
         let mut conn = pool.acquire().await?;

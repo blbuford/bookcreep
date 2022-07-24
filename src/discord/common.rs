@@ -23,7 +23,7 @@ impl TypeMapKey for DatabaseContainer {
 }
 
 #[group]
-#[commands(lurk, set_notify_channel)]
+#[commands(lurk, unlurk, set_notify_channel)]
 struct General;
 
 struct Handler;

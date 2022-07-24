@@ -104,6 +104,16 @@
     },
     "query": "SELECT * FROM users WHERE last_checked < ?"
   },
+  "5560087b4cfe80cf6611b1bad1b99db3f545d538071ab97d33efb59c55436214": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "DELETE FROM users WHERE discord_user_id = ? AND discord_guild_id = ?"
+  },
   "7a4ca144ac9835cadfab2c8d2669da92a683bd134be552f8d80deb13247b0e5c": {
     "describe": {
       "columns": [
