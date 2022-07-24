@@ -1,15 +1,14 @@
 use anyhow::{anyhow, Context};
 use reqwest::Url;
-use serenity::async_trait;
 use serenity::framework::standard::macros::group;
 use serenity::framework::standard::StandardFramework;
-use serenity::http::Http;
 use serenity::model::channel::Message;
 use serenity::model::event::ResumedEvent;
 use serenity::model::gateway::Ready;
 use serenity::model::id::ChannelId;
-use serenity::model::prelude::{AttachmentType, Guild, GuildId};
+use serenity::model::prelude::{AttachmentType, Guild, GuildId, UserId};
 use serenity::prelude::*;
+use serenity::{async_trait, CacheAndHttp};
 use sqlx::SqlitePool;
 use std::env;
 use std::sync::Arc;
@@ -59,7 +58,7 @@ To chose which channel is used for notifications, (1) be an admin and (2) type `
 
 To sign up for sending notifications about your book progress, type `~lurk <good reads id>` where <good reads id> is your integer id assigned by goodreads. Sign in to good reads, go to your profile, and look at the URL. You should see something like `https://www.goodreads.com/user/show/<good reads id>-herp-derplinson`
 
-To remove yourself from notifications, type `~unlurk`. You'll be excluded from further... _lurking_."#
+To remove yourself from notifications, type `~unlurk`. You'll be excluded from further... _lurking_ 😏."#
                                     );
                                     if let Err(why) =
                                         system_channel.say(ctx.http.clone(), help).await
@@ -113,22 +112,25 @@ pub async fn get_discord_client(database: Arc<SqlitePool>) -> Client {
     client
 }
 
-#[tracing::instrument(name = "Posting message to discord", skip(http))]
+#[tracing::instrument(name = "Posting message to discord", skip(cache_and_http))]
 pub async fn post_book(
-    http: impl AsRef<Http>,
+    cache_and_http: Arc<CacheAndHttp>,
     book: &Book,
     user: &User,
     channel: ChannelId,
 ) -> anyhow::Result<Message> {
     let rating = "⭐".repeat(book.rating());
+    let user_id = UserId(user.discord_user_id as u64)
+        .to_user(cache_and_http.clone())
+        .await?;
     let msg = format!(
-        "🎉\n <@{}> finished {} by {}",
-        user.discord_user_id,
+        "🎉\n {} finished {} by {}",
+        user_id.name,
         book.title(),
         book.author()
     );
     channel
-        .send_message(&http, |m| {
+        .send_message(&cache_and_http.http, |m| {
             m.add_embed(|e| e.url(book.url()).description(rating).title("Review"))
                 .content(msg)
                 .add_file(AttachmentType::Image(

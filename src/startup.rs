@@ -23,7 +23,7 @@ pub async fn run_until_stopped() -> anyhow::Result<()> {
         let cache_and_http = discord_client.cache_and_http.clone();
         tokio::select! {
             r = discord_client.start() => { report_exit("Discord Client", r) },
-            r = crawl(&cache_and_http.http, database.clone()) => { report_exit("Crawler", r)},
+            r = crawl(cache_and_http, database.clone()) => { report_exit("Crawler", r)},
         };
     }
 }

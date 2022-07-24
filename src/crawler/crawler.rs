@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context};
 use quick_xml::de::from_str;
-use serenity::http::Http;
+use serenity::CacheAndHttp;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
@@ -10,7 +10,7 @@ use crate::discord::post_book;
 use crate::model::Book;
 use crate::model::User;
 
-pub async fn crawl(http: impl AsRef<Http>, pool: Arc<SqlitePool>) -> anyhow::Result<()> {
+pub async fn crawl(cache_and_http: Arc<CacheAndHttp>, pool: Arc<SqlitePool>) -> anyhow::Result<()> {
     let client = GovernedClient::default();
     let pool = &*pool;
 
@@ -21,9 +21,14 @@ pub async fn crawl(http: impl AsRef<Http>, pool: Arc<SqlitePool>) -> anyhow::Res
                     Ok(result) => {
                         if let Some(books) = result {
                             for book in books.iter() {
-                                post_book(&http, &book, &user, user.get_channel_id(pool).await?)
-                                    .await
-                                    .context("Unable to post book to discord!")?;
+                                post_book(
+                                    cache_and_http.clone(),
+                                    &book,
+                                    &user,
+                                    user.get_channel_id(pool).await?,
+                                )
+                                .await
+                                .context("Unable to post book to discord!")?;
                             }
                         }
                         user.update(pool)
