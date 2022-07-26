@@ -1,3 +1,4 @@
+use sqlx::ConnectOptions;
 use std::env;
 use std::fmt::{Debug, Display};
 use std::str::FromStr;

@@ -17,13 +17,21 @@ use crate::discord::commands::*;
 use crate::model::{Book, User};
 
 pub struct DatabaseContainer;
+pub const HELP_STR: &str = r#"👋
+To chose which channel is used for notifications, (1) be an admin and (2) type `~set_notify_channel` in the channel that should have it.
+
+To sign up for sending notifications about your book progress, type `~lurk <good reads id>` where <good reads id> is your integer id assigned by goodreads. Sign in to good reads, go to your profile, and look at the URL. You should see something like `https://www.goodreads.com/user/show/<good reads id>-herp-derplinson`
+
+To remove yourself from notifications, type `~unlurk`. You'll be excluded from further... _lurking_ 😏.
+
+To see this message again, type `~help`"#;
 
 impl TypeMapKey for DatabaseContainer {
     type Value = Arc<SqlitePool>;
 }
 
 #[group]
-#[commands(lurk, unlurk, set_notify_channel)]
+#[commands(lurk, unlurk, set_notify_channel, help)]
 struct General;
 
 struct Handler;
@@ -52,16 +60,9 @@ impl EventHandler for Handler {
                                     );
                                 } else {
                                     // Post the initial help message
-                                    let help = format!(
-                                        r#"👋
-To chose which channel is used for notifications, (1) be an admin and (2) type `~set_notification_channel` in the channel that should have it.
 
-To sign up for sending notifications about your book progress, type `~lurk <good reads id>` where <good reads id> is your integer id assigned by goodreads. Sign in to good reads, go to your profile, and look at the URL. You should see something like `https://www.goodreads.com/user/show/<good reads id>-herp-derplinson`
-
-To remove yourself from notifications, type `~unlurk`. You'll be excluded from further... _lurking_ 😏."#
-                                    );
                                     if let Err(why) =
-                                        system_channel.say(ctx.http.clone(), help).await
+                                        system_channel.say(ctx.http.clone(), HELP_STR).await
                                     {
                                         tracing::error!(
                                         "Unable to post initial help message in guild ({}) because: {}",

@@ -6,10 +6,7 @@ async fn main() -> anyhow::Result<()> {
     let subscriber = get_subscriber("bookcreep".into(), "info".into(), std::io::stdout);
     init_subscriber(subscriber);
 
-    tokio::select! {
-        _ = tokio::signal::ctrl_c() => {},
-        _ = run_until_stopped() => {},
-    }
+    run_until_stopped().await?;
 
     Ok(())
 }
